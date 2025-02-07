@@ -24,7 +24,6 @@ class BaseFloodDataset(Dataset, ABC):
         image_dir: str,
         mask_dir: str,
         resize_height: int,
-        resize_width: int,
         apply_augmentations: bool = False,
     ):
         """
@@ -40,7 +39,6 @@ class BaseFloodDataset(Dataset, ABC):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
         self.resize_height = resize_height
-        self.resize_width = resize_width
         self.apply_augmentations = apply_augmentations
 
         # Read examples CSV file into DataFrame format
@@ -120,7 +118,7 @@ class TrainFloodDataset(BaseFloodDataset):
     # Constants for `Affine` augmentation
     AFFINE_P: float = 0.7
     TRANSLATE_RANGE: tuple[int] = (-0.0625, 0.0625)
-    SCALE_RANGE: tuple[int] = (0.9, 1.1)
+    SCALE_RANGE: tuple[int] = (1.1, 1.3)
     ROTATE_RANGE: tuple[int] = (-15, 15)
 
     # Constants for `ColorJitter` augmentation
@@ -134,7 +132,10 @@ class TrainFloodDataset(BaseFloodDataset):
         """
         Returns an albumentations transform
         """
-        transforms = []
+        transforms = [
+            A.LongestMaxSize(max_size=self.resize_height),
+            A.PadIfNeeded(min_height=self.resize_height, min_width=self.resize_height),
+        ]
 
         if self.apply_augmentations:
             data_augmentations = [
@@ -173,6 +174,10 @@ class ValFloodDataset(BaseFloodDataset):
         """
         return A.Compose(
             [
+                A.LongestMaxSize(max_size=self.resize_height),
+                A.PadIfNeeded(
+                    min_height=self.resize_height, min_width=self.resize_height
+                ),
                 A.Normalize(),
                 A.pytorch.ToTensorV2(),
             ]
