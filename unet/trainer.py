@@ -2,11 +2,14 @@
 Module used to launch model training and evaluation
 """
 
+import os
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import wandb
 from unet.dataset import TrainFloodDataset, ValFloodDataset
 from unet.eval import Metrics
 from unet.loss import Loss
@@ -36,11 +39,18 @@ class Trainer:
         Creates an instance of the `Trainer` class
 
         Parameters:
-            model (Model): Model object used for training
+            model (nn.Module): Model object used for training
+            resize_height (int): _description_
             num_epochs (int): Number of epochs to train the model for
-            batch_size (int): Number of data examples to use in each batch
+            batch_size (int):  Number of data examples to use in each batch
             learning_rate (float): Learning rate to use in gradient descent optimization
-            verbose (bool): Whether to print out per-epoch training losses and accuracies
+            device (torch.device): _description_
+            train_examples_path (str): _description_
+            val_examples_path (str): _description_
+            image_dir (str): _description_
+            mask_dir (str): _description_
+            apply_augmentations (bool, optional): _description_. Defaults to True.
+            verbose (bool, optional): Whether to print out per-epoch training losses and accuracies.
         """
         self.model = model.to(device)
         self.resize_height = resize_height
@@ -79,28 +89,33 @@ class Trainer:
         self.train_metrics = Metrics(data_split="train")
         self.val_metrics = Metrics(data_split="val")
 
+        self.current_epoch = 0
+
     def train(self) -> None:
         """
         Launches a training run for `num_epochs`
         """
         for epoch in tqdm(range(1, self.num_epochs + 1)):
-            self._run_epoch()
+            self.current_epoch = epoch
+            self.run_epoch()
 
-    def _run_epoch(self) -> None:
+    def run_epoch(self) -> None:
         """
         Runs one epoch of training
         """
-        self._run_train_loop()
-        self._run_validation_loop()
+        self.run_train_loop()
+        self.train_metrics.calculate_and_reset()
 
-    def _run_train_loop(self):
+        self.run_validation_loop()
+        self.val_metrics.calculate_and_reset()
+
+    def run_train_loop(self):
         """
         Runs one epoch of model training
         """
         self.model.train()
-        self.optimizer.zero_grad()
 
-        loader = self.get_train_dataloader()
+        loader = self.get_dataloader(data_split="train")
 
         for idx, (image_batch, mask_batch) in enumerate(
             tqdm(loader, desc="Training Loop")
@@ -108,27 +123,31 @@ class Trainer:
             image_batch = image_batch.to(self.device)
             mask_batch = mask_batch.to(self.device)
 
-            # Run forward pass of model
+            # Run forward pass of model and calculate loss
             model_out = self.model.forward(x=image_batch)
-
-            # Calculate loss and run backpropagation
             curr_loss = self.loss.get_loss(pred=model_out, ground_truth=mask_batch)
-            curr_loss.backward()
 
-            # Take optimizer step and clear gradients
-            self.optimizer.step()
+            # Backpropagation and optimizer step
             self.optimizer.zero_grad()
+            curr_loss.backward()
+            self.optimizer.step()
 
             # Update aggregate training metrics
             self.train_metrics.update(pred=model_out, ground_truth=mask_batch)
 
-    def _run_validation_loop(self):
+            # Log losses to Weights & Biases platform
+            wandb.log(data={"Train/train_loss": curr_loss.detach().item()})
+
+    def run_validation_loop(self):
         """
         Runs one epoch of model evaluation on validation set
         """
         self.model.eval()
 
-        loader = self.get_validation_dataloader()
+        loader = self.get_dataloader(data_split="val")
+
+        running_mean_val_loss: float = 0.0
+        num_batches: int = len(loader)
 
         for idx, (image_batch, mask_batch) in enumerate(
             tqdm(loader, desc="Validation Loop")
@@ -143,20 +162,35 @@ class Trainer:
             # Calculate validation loss
             curr_loss = self.loss.get_loss(pred=model_out, ground_truth=mask_batch)
 
-    def get_train_dataloader(self):
-        """
-        Returns dataloader used for training loop
-        """
-        return DataLoader(
-            dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True
-        )
+            # Add to running average of validation loss
+            running_mean_val_loss += curr_loss / num_batches
 
-    def get_validation_dataloader(self):
+            self.val_metrics.update(pred=model_out, ground_truth=mask_batch)
+
+        # Log per-epoch validation loss
+        wandb.log(data={"Val/val_loss": running_mean_val_loss})
+
+    def get_dataloader(self, data_split: str) -> DataLoader:
         """
-        Returns dataloader used for validation loop
+        Returns dataloader used for specific training phase
+
+        Parameters:
+            data_split (str): Training phase, either "train" or "val"
+
+        Returns:
+            (DataLoader): Dataloader yielding batches of (image, mask) tensors
         """
-        return DataLoader(
-            dataset=self.val_dataset, batch_size=self.batch_size, shuffle=False
+        if data_split == "train":
+            return DataLoader(
+                dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True
+            )
+        elif data_split == "val":
+            return DataLoader(
+                dataset=self.val_dataset, batch_size=self.batch_size, shuffle=False
+            )
+
+        raise ValueError(
+            f"Data split '{data_split} 'not supported. Expected 'train' or 'val'."
         )
 
     def get_optimizer(self):
@@ -164,6 +198,24 @@ class Trainer:
         Returns the optimizer to use for training
         """
         return torch.optim.Adam(params=self.model.parameters(), lr=self.learning_rate)
+
+    def save_checkpoint(self, checkpoint_dir: str) -> None:
+        """
+        Saves PyTorch model to disk
+
+        Parameters:
+            checkpoint_dir (str): Name of directory to save checkpoint to.
+        """
+        checkpoint_path = os.path.join(
+            checkpoint_dir, f"unet-epoch={self.current_epoch}.pth"
+        )
+        contents = {
+            "epoch": self.current_epoch,
+            "model_state_dict": self.model.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+        }
+
+        torch.save(contents, checkpoint_path)
 
     def __repr__(self) -> str:
         """

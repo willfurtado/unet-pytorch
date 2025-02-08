@@ -20,24 +20,26 @@ class Loss:
         Creates an instance of the `Loss` class
 
         Parameters:
-            weight (float):
+            reduction (str): Type of reduction to perform to intermediate loss tensor. Defaults
+                to "mean" reduction, and will take an average loss value across the entire batch.
         """
         self.reduction = reduction
 
+        # Use BinaryCrossEntropy loss function for single-class pixelwise classification
         self.loss_fn = nn.BCEWithLogitsLoss(
             pos_weight=self.POS_WEIGHT, reduction=self.reduction
         )
 
-    def get_loss(self, pred: torch.Tensor, ground_truth: torch.Tensor) -> float:
+    def get_loss(self, pred: torch.Tensor, ground_truth: torch.Tensor) -> torch.Tensor:
         """
-        Calculates the model loss
+        Calculates the loss between model output and ground truth data
 
         Parameters:
-            pred (torch.Tensor): _description_
-            ground_truth (torch.Tensor): _description_
+            pred (torch.Tensor): Tensor of model logits, of shape (B, C, H, W)
+            ground_truth (torch.Tensor): Tensor of ground truth mask, of shape (B, C, H, W)
 
         Returns:
-            (float): _description_
+            (torch.Tensor): Possibly singleton tensor representing loss calculation
         """
         return self.loss_fn(pred, ground_truth)
 

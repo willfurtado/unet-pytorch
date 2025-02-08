@@ -117,16 +117,16 @@ class TrainFloodDataset(BaseFloodDataset):
     """
 
     # Constants for `HorizontalFlip` augmentation
-    HORIZONTAL_FLIP_P: float = 0.5
+    HORIZONTAL_FLIP_P: float = 0.7
 
     # Constants for `Affine` augmentation
-    AFFINE_P: float = 0.7
+    AFFINE_P: float = 0.5
     TRANSLATE_RANGE: tuple[int] = (-0.0625, 0.0625)
     SCALE_RANGE: tuple[int] = (1.1, 1.3)
-    ROTATE_RANGE: tuple[int] = (-15, 15)
+    ROTATE_RANGE: tuple[int] = (-10, 10)
 
     # Constants for `ColorJitter` augmentation
-    COLOR_JITTER_P: float = 0.5
+    COLOR_JITTER_P: float = 0.3
     BRIGHTNESS_RANGE: tuple[int] = (0.8, 1.2)
     CONTRAST_RANGE: tuple[int] = (0.8, 1.2)
     SATURATION_RANGE: tuple[int] = (0.8, 1.2)

@@ -172,3 +172,6 @@ cython_debug/
 
 # Ignore Apple filesystem artifacts
 .DS_Store
+
+# Ignore training artifacts from W&B
+wandb

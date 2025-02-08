@@ -13,13 +13,17 @@ class TrainingParams:
     Hyperparameters used for model training
     """
 
+    wandb_project_name: str = "unet"
+    architecture: str = "U-Net"
+    dataset: str = "https://www.kaggle.com/datasets/faizalkarim/flood-area-segmentation"
+
     in_channels: int = 3
     out_channels: int = 1
     layer_dims: list[int] = field(default_factory=lambda: [64, 128, 256, 512])
 
     resize_height: int = 256
 
-    num_epochs: int = 50
+    num_epochs: int = 5
     batch_size: int = 2
     learning_rate: float = 1e-3
     device: torch.device = torch.device("mps")

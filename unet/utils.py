@@ -4,6 +4,7 @@ Utility functions used for model training
 
 import matplotlib.pyplot as plt
 import torch
+from torch.utils.data import Dataset
 
 
 def denormalize_tensor(
@@ -30,9 +31,17 @@ def denormalize_tensor(
     return torch.clamp(denormalized, 0, 1)
 
 
-def visualize_example(dataset, idx: int, alpha: float = 0.4):
+def visualize_example(dataset: Dataset, idx: int, alpha: float = 0.4):
     """
     Shows training or validation example, with segmentation overlaid
+
+    Parameters:
+        dataset (_type_): _description_
+        idx (int): _description_
+        alpha (float, optional): _description_. Defaults to 0.4.
+
+    Returns:
+        (_type_): _description_
     """
     image, mask = dataset[idx]
 

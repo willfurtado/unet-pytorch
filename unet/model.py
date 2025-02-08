@@ -175,10 +175,10 @@ class ConvBlock(nn.Module):
         Forward pass for the `ConvBlock` module
 
         Parameters:
-            x (torch.Tensor): _description_
+            x (torch.Tensor): Input tensor of shape (B, in_channels, H, W)
 
         Returns:
-            (torch.Tensor): _description_
+            (torch.Tensor): Output tensor of shape (B, out_channels, H, W)
         """
         x = self.conv1(x)
         x = self.bn1(x)
@@ -192,6 +192,9 @@ class ConvBlock(nn.Module):
 
 
 def test():
+    """
+    Sanity check to ensure input and output shapes match
+    """
     img = torch.ones(1, 3, 512, 512)
     model = UNet(in_channels=3, out_channels=1, layer_dims=[64, 128, 256, 512])
     out = model(img)
