@@ -3,14 +3,15 @@ Flood segmentation dataset and dataloader classes
 """
 
 import os
-import pandas as pd
-import cv2
-import torch
-from torch.utils.data import Dataset
-from PIL import Image
-import numpy as np
-import albumentations as A
 from abc import ABC, abstractmethod
+
+import albumentations as A
+import cv2
+import numpy as np
+import pandas as pd
+import torch
+from PIL import Image
+from torch.utils.data import Dataset
 
 
 class BaseFloodDataset(Dataset, ABC):
@@ -90,9 +91,12 @@ class BaseFloodDataset(Dataset, ABC):
         Returns:
             (tuple[torch.Tensor, torch.Tensor]): Image, mask pair as PyTorch tensors
         """
-        datapoint = self._prepare_datapoint(idx=idx)
+        try:
+            datapoint = self._prepare_datapoint(idx=idx)
 
-        return datapoint["image"], datapoint["mask"].unsqueeze(0)
+            return datapoint["image"], datapoint["mask"].unsqueeze(0).float()
+        except ValueError:
+            return self.__getitem__((idx + 1) % len(self))
 
     def __len__(self) -> int:
         """

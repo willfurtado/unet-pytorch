@@ -2,8 +2,8 @@
 Utility functions used for model training
 """
 
-import torch
 import matplotlib.pyplot as plt
+import torch
 
 
 def denormalize_tensor(
@@ -14,7 +14,7 @@ def denormalize_tensor(
     """
     Denormalizes a tensor image by reversing the normalization process.
 
-    Args:
+    Parameters:
         image (torch.Tensor): The normalized image tensor of shape (C, H, W).
         mean (tuple or list): The mean values used for normalization (per channel).
         std (tuple or list): The standard deviation values used for normalization (per channel).
