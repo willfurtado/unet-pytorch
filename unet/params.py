@@ -23,8 +23,8 @@ class TrainingParams:
 
     resize_height: int = 256
 
-    num_epochs: int = 5
-    batch_size: int = 2
+    num_epochs: int = 150
+    batch_size: int = 4
     learning_rate: float = 1e-3
     device: torch.device = torch.device("mps")
     train_examples_path: str = "data/train.csv"
@@ -32,5 +32,4 @@ class TrainingParams:
     image_dir: str = "data/image"
     mask_dir: str = "data/mask"
     apply_augmentations: bool = True
-    verbose: bool = False
     verbose: bool = False

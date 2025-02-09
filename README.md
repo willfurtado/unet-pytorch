@@ -19,7 +19,5 @@ A Python module, `unet`, is provided to handle all aspects of training and evalu
 
 ### Results
 
-Following are the experimental results for the flood segmentation dataset:
-
-Weights & Biases Project: https://wandb.ai/willfurtado/unet
+Experimental results for the flood area segmentation task can be found within the following Weights & Biases Project: https://wandb.ai/willfurtado/unet
 
